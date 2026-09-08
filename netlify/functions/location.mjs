@@ -19,18 +19,9 @@ export async function handler(event) {
   try {
     const siteID = process.env.NETLIFY_SITE_ID?.trim();
     const authToken = process.env.NETLIFY_AUTH_TOKEN?.trim();
-    if (!siteID || !authToken) {
-      return response(500, {
-        error: 'storage_configuration_missing',
-        detail: 'Netlify environment variables NETLIFY_SITE_ID and NETLIFY_AUTH_TOKEN are required.'
-      });
-    }
-
-    store = getStore({
-      name: 'locations',
-      siteID,
-      token: authToken
-    });
+    store = siteID && authToken
+      ? getStore({ name: 'locations', siteID, token: authToken })
+      : getStore('locations');
   } catch (error) {
     console.error('Netlify Blobs initialization failed:', error);
     return response(500, { error: 'storage_unavailable', detail: error.message });
