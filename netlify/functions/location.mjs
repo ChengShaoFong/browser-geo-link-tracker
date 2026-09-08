@@ -17,7 +17,11 @@ function validToken(token) {
 export async function handler(event) {
   let store;
   try {
-    store = getStore('locations');
+    store = getStore({
+      name: 'locations',
+      siteID: process.env.NETLIFY_SITE_ID,
+      token: process.env.NETLIFY_AUTH_TOKEN
+    });
   } catch (error) {
     console.error('Netlify Blobs initialization failed:', error);
     return response(500, { error: 'storage_unavailable', detail: error.message });
