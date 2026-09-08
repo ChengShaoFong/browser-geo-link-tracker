@@ -17,10 +17,19 @@ function validToken(token) {
 export async function handler(event) {
   let store;
   try {
+    const siteID = process.env.NETLIFY_SITE_ID?.trim();
+    const authToken = process.env.NETLIFY_AUTH_TOKEN?.trim();
+    if (!siteID || !authToken) {
+      return response(500, {
+        error: 'storage_configuration_missing',
+        detail: 'Netlify environment variables NETLIFY_SITE_ID and NETLIFY_AUTH_TOKEN are required.'
+      });
+    }
+
     store = getStore({
       name: 'locations',
-      siteID: process.env.NETLIFY_SITE_ID,
-      token: process.env.NETLIFY_AUTH_TOKEN
+      siteID,
+      token: authToken
     });
   } catch (error) {
     console.error('Netlify Blobs initialization failed:', error);
@@ -57,7 +66,7 @@ export async function handler(event) {
     if (event.httpMethod === 'GET') {
       const token = event.queryStringParameters?.token;
       if (!validToken(token)) return response(400, { error: 'invalid_token' });
-      const rawLocation = await store.get(token);
+      const rawLocation = await store.get(token, { consistency: 'strong' });
       const location = rawLocation ? JSON.parse(rawLocation) : null;
       if (location && Date.now() - Date.parse(location.receivedAt) > 86400000) {
         await store.delete(token);
