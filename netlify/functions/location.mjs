@@ -6,34 +6,28 @@ const headers = {
   'X-Content-Type-Options': 'nosniff'
 };
 
-function response(statusCode, body) {
-  return { statusCode, headers, body: JSON.stringify(body) };
+function json(body, status = 200) {
+  return new Response(JSON.stringify(body), { status, headers });
 }
 
 function validToken(token) {
   return typeof token === 'string' && /^[a-f0-9]{32}$/.test(token);
 }
 
-export async function handler(event) {
-  let store;
-  try {
-    const siteID = process.env.NETLIFY_SITE_ID?.trim();
-    const authToken = process.env.NETLIFY_AUTH_TOKEN?.trim();
-    store = siteID && authToken
-      ? getStore({ name: 'locations', siteID, token: authToken })
-      : getStore('locations');
-  } catch (error) {
-    console.error('Netlify Blobs initialization failed:', error);
-    return response(500, { error: 'storage_unavailable', detail: error.message });
-  }
+function isExpired(location) {
+  return location && Date.now() - Date.parse(location.receivedAt) > 86400000;
+}
+
+export default async function handler(request) {
+  const store = getStore('locations');
 
   try {
-    if (event.httpMethod === 'POST') {
+    if (request.method === 'POST') {
       let data;
       try {
-      data = JSON.parse(event.body || '{}');
+        data = await request.json();
       } catch {
-        return response(400, { error: 'invalid_json' });
+        return json({ error: 'invalid_json' }, 400);
       }
 
       const latitude = Number(data.latitude);
@@ -42,33 +36,36 @@ export async function handler(event) {
       if (!validToken(data.token) || !Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
           !Number.isFinite(longitude) || longitude < -180 || longitude > 180 ||
           !Number.isFinite(accuracy) || accuracy < 0 || accuracy > 100000) {
-        return response(400, { error: 'invalid_location' });
+        return json({ error: 'invalid_location' }, 400);
       }
 
-      await store.set(data.token, JSON.stringify({
+      await store.setJSON(data.token, {
         latitude: Number(latitude.toFixed(6)),
         longitude: Number(longitude.toFixed(6)),
         accuracy: Math.round(accuracy),
         receivedAt: new Date().toISOString()
-      }));
-      return response(200, { ok: true });
+      });
+      return json({ ok: true });
     }
 
-    if (event.httpMethod === 'GET') {
-      const token = event.queryStringParameters?.token;
-      if (!validToken(token)) return response(400, { error: 'invalid_token' });
-      const rawLocation = await store.get(token, { consistency: 'strong' });
-      const location = rawLocation ? JSON.parse(rawLocation) : null;
-      if (location && Date.now() - Date.parse(location.receivedAt) > 86400000) {
+    if (request.method === 'GET') {
+      const token = new URL(request.url).searchParams.get('token');
+      if (!validToken(token)) return json({ error: 'invalid_token' }, 400);
+
+      const location = await store.get(token, {
+        type: 'json',
+        consistency: 'strong'
+      });
+      if (isExpired(location)) {
         await store.delete(token);
-        return response(200, null);
+        return json(null);
       }
-      return response(200, location);
+      return json(location || null);
     }
 
-    return response(405, { error: 'method_not_allowed' });
+    return json({ error: 'method_not_allowed' }, 405);
   } catch (error) {
     console.error('Location function failed:', error);
-    return response(500, { error: 'storage_request_failed', detail: error.message });
+    return json({ error: 'storage_request_failed', detail: error.message }, 500);
   }
 }
