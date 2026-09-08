@@ -21,3 +21,9 @@
 - 不需要 Google Maps API 金鑰；定位使用 Chrome/Android 的瀏覽器原生權限詢問，查看座標時才開啟 Google Maps。
 - 位置資料會存放在 Netlify Blobs，查看連結的持有者可以讀取；請不要把查看連結公開。不需要在程式碼或前端放入個人存取 Token。
 - Function 會在資料讀取時清除超過 24 小時的定位資料。
+
+
+## QA 
+
+- 傳送失敗 ( The environment has not been configured to use Netlify blobs to use it manually, supply the following properties when creating a store:siteID, token)
+- 不需要因為這個錯誤而另外建立資料庫。專案目前使用 Netlify Blobs 暫存每個分享代碼所對應的最新位置，並在 24 小時後刪除;這類短期、整份讀寫的資料可以繼續使用 Blobs。錯誤的主要原因不是缺少資料庫，而是 使用了舊版 函式格式。這種執行方式可能沒有自動注入 Blobs 所需的站點資訊，因此 顯示環境尚未設定，並要求手動提供。直接以一般靜態伺服器開啟網站，也會遇到相同類型的環境問題。
