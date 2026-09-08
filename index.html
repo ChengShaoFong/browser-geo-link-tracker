@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#173f5f">
+  <title>位置分享請求</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17324d;
+      --muted: #607284;
+      --paper: #f5f1e8;
+      --panel: #fffdf8;
+      --accent: #ef8354;
+      --accent-dark: #c75c32;
+      --line: #ded7c8;
+      --success: #28745a;
+      --error: #aa463b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 18%, rgba(239, 131, 84, .22), transparent 28%),
+        radial-gradient(circle at 88% 82%, rgba(23, 63, 95, .16), transparent 30%),
+        var(--paper);
+      font-family: Georgia, "Noto Serif TC", "Microsoft JhengHei", serif;
+    }
+
+    main {
+      width: min(100%, 540px);
+      overflow: hidden;
+      background: var(--panel);
+      border: 1px solid rgba(23, 50, 77, .12);
+      box-shadow: 0 22px 60px rgba(23, 50, 77, .15);
+    }
+
+    header {
+      padding: 42px 38px 34px;
+      color: #fff;
+      background: var(--ink);
+      position: relative;
+    }
+
+    header::after {
+      content: "";
+      position: absolute;
+      right: -36px;
+      bottom: -48px;
+      width: 150px;
+      height: 150px;
+      border: 22px solid rgba(239, 131, 84, .78);
+      border-radius: 50%;
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      color: #f5b08e;
+      font: 700 12px/1.4 Arial, sans-serif;
+      letter-spacing: 2px;
+    }
+
+    h1 {
+      max-width: 330px;
+      margin: 0;
+      font-size: clamp(30px, 8vw, 46px);
+      line-height: 1.08;
+      font-weight: 700;
+    }
+
+    section { padding: 34px 38px 38px; }
+
+    .intro {
+      margin: 0 0 24px;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.8;
+    }
+
+    .notice {
+      margin: 0 0 22px;
+      padding: 14px 16px;
+      border-left: 3px solid var(--accent);
+      background: #fff4ed;
+      color: #75442f;
+      font: 14px/1.7 Arial, "Microsoft JhengHei", sans-serif;
+    }
+
+    button, a {
+      display: inline-flex;
+      width: 100%;
+      min-height: 52px;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      font: 700 16px/1.2 Arial, "Microsoft JhengHei", sans-serif;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    button {
+      color: #fff;
+      background: var(--accent);
+      transition: background .2s ease, transform .2s ease;
+    }
+
+    button:hover { background: var(--accent-dark); transform: translateY(-1px); }
+    button:focus-visible, a:focus-visible { outline: 3px solid #f5b08e; outline-offset: 3px; }
+    button:disabled { cursor: wait; opacity: .62; transform: none; }
+
+    #status {
+      min-height: 28px;
+      margin: 18px 0 0;
+      color: var(--muted);
+      font: 14px/1.6 Arial, "Microsoft JhengHei", sans-serif;
+    }
+
+    #linksResult, #locationResult { display: none; margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--line); }
+    #linksResult.visible, #locationResult.visible { display: block; }
+    .result-label { margin: 0 0 8px; color: var(--muted); font: 12px Arial, sans-serif; letter-spacing: 1px; }
+    .coordinates { margin: 0 0 18px; font: 700 18px/1.6 ui-monospace, Consolas, monospace; word-break: break-word; }
+    .map-link { color: var(--ink); background: #e6eee9; }
+    .map-link:hover { background: #d4e2db; }
+    .privacy { margin: 22px 0 0; color: var(--muted); font: 12px/1.6 Arial, "Microsoft JhengHei", sans-serif; }
+    .success { color: var(--success) !important; }
+    .error { color: var(--error) !important; }
+
+    @media (max-width: 520px) {
+      body { padding: 0; }
+      main { min-height: 100vh; }
+      header, section { padding-left: 24px; padding-right: 24px; }
+      header { padding-top: 36px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">CONSENTED LOCATION</p>
+      <h1 id="title">建立位置分享請求</h1>
+    </header>
+    <section id="ownerView">
+      <p class="intro">建立一組一次性的分享連結，傳給另一支手機。對方同意定位後，你可以在查看頁看到位置。</p>
+      <p class="notice">對方必須主動按下按鈕並允許瀏覽器定位權限。沒有同意，就不會取得或傳送位置。</p>
+      <button id="createButton" type="button">建立定位連結</button>
+      <p id="ownerStatus" role="status" aria-live="polite">尚未建立連結。</p>
+      <div id="linksResult" aria-live="polite">
+        <p class="result-label">傳給另一支手機</p>
+        <p id="requestUrl" class="coordinates"></p>
+        <button id="copyButton" type="button">複製簡訊連結</button>
+        <p class="result-label">你自己的查看頁</p>
+        <p id="viewerUrl" class="coordinates"></p>
+        <a id="viewerLink" class="map-link" href="#">開啟查看頁</a>
+      </div>
+    </section>
+    <section id="recipientView" hidden>
+      <p class="intro">有人請求你分享目前位置。只有在你按下按鈕並允許瀏覽器權限後，位置才會傳送給對方。</p>
+      <p class="notice">請確認你信任這個連結的發送者。位置分享完成後，你可以關閉此頁面。</p>
+      <button id="locateButton" type="button">同意並傳送我的位置</button>
+      <p id="recipientStatus" role="status" aria-live="polite">尚未傳送位置。</p>
+    </section>
+    <section id="viewerView" hidden>
+      <p class="intro">這是你的查看頁。頁面會等待對方主動同意並回傳位置。</p>
+      <p id="viewerStatus" role="status" aria-live="polite">等待位置中…</p>
+      <div id="locationResult" aria-live="polite">
+        <p class="result-label">最後回傳位置</p>
+        <p id="coordinates" class="coordinates"></p>
+        <p id="receivedAt" class="privacy"></p>
+        <a id="mapLink" class="map-link" href="#" target="_blank" rel="noopener">在地圖中開啟</a>
+      </div>
+    </section>
+  </main>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('request') || params.get('view');
+    const mode = params.has('request') ? 'recipient' : params.has('view') ? 'viewer' : 'owner';
+    const baseUrl = window.location.origin + window.location.pathname;
+
+    const title = document.querySelector('#title');
+    const ownerView = document.querySelector('#ownerView');
+    const recipientView = document.querySelector('#recipientView');
+    const viewerView = document.querySelector('#viewerView');
+    const linksResult = document.querySelector('#linksResult');
+    const ownerStatus = document.querySelector('#ownerStatus');
+    const recipientStatus = document.querySelector('#recipientStatus');
+    const viewerStatus = document.querySelector('#viewerStatus');
+    const locateButton = document.querySelector('#locateButton');
+    const createButton = document.querySelector('#createButton');
+
+    function setStatus(element, message, kind = '') {
+      element.textContent = message;
+      element.className = kind;
+    }
+
+    function createRequest() {
+      const requestToken = crypto.randomUUID().replaceAll('-', '');
+      const requestUrl = `${baseUrl}?request=${requestToken}`;
+      const viewerUrl = `${baseUrl}?view=${requestToken}`;
+      document.querySelector('#requestUrl').textContent = requestUrl;
+      document.querySelector('#viewerUrl').textContent = viewerUrl;
+      document.querySelector('#viewerLink').href = viewerUrl;
+      document.querySelector('#copyButton').dataset.url = requestUrl;
+      linksResult.classList.add('visible');
+      setStatus(ownerStatus, '連結已建立。請把「傳給另一支手機」的網址放入簡訊。', 'success');
+    }
+
+    async function copyRequestUrl() {
+      const url = document.querySelector('#copyButton').dataset.url;
+      await navigator.clipboard.writeText(url);
+      setStatus(ownerStatus, '已複製簡訊連結。', 'success');
+    }
+
+    function showLocation(position) {
+      const latitude = position.coords.latitude.toFixed(6);
+      const longitude = position.coords.longitude.toFixed(6);
+      const payload = { token, latitude, longitude, accuracy: Math.round(position.coords.accuracy) };
+
+      fetch('/api/location', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then((response) => {
+        if (!response.ok) throw new Error('傳送失敗');
+        setStatus(recipientStatus, '位置已傳送完成，你可以關閉此頁面。', 'success');
+        locateButton.disabled = false;
+      }).catch(() => {
+        setStatus(recipientStatus, '位置傳送失敗，請確認網路連線後再試一次。', 'error');
+        locateButton.disabled = false;
+      });
+    }
+
+    function locateAndSend() {
+      if (!window.isSecureContext) {
+        setStatus(recipientStatus, '請使用 HTTPS 網址開啟此頁面。', 'error');
+        return;
+      }
+      if (!navigator.geolocation) {
+        setStatus(recipientStatus, '此瀏覽器不支援定位功能。', 'error');
+        return;
+      }
+      locateButton.disabled = true;
+      setStatus(recipientStatus, '正在等待你的定位權限…');
+      navigator.geolocation.getCurrentPosition(
+        showLocation,
+        (error) => {
+          const messages = { 1: '你拒絕了定位權限。', 2: '目前無法取得位置。', 3: '定位逾時，請再試一次。' };
+          setStatus(recipientStatus, messages[error.code] || '定位失敗，請再試一次。', 'error');
+          locateButton.disabled = false;
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    }
+
+    async function pollLocation() {
+      try {
+        const response = await fetch(`/api/location?token=${encodeURIComponent(token)}`);
+        if (!response.ok) throw new Error('讀取失敗');
+        const location = await response.json();
+        if (!location) return;
+        const { latitude, longitude, accuracy, receivedAt } = location;
+        document.querySelector('#coordinates').textContent = `${latitude}, ${longitude}`;
+        document.querySelector('#receivedAt').textContent = `誤差約 ${accuracy} 公尺，收到時間：${new Date(receivedAt).toLocaleString()}`;
+        document.querySelector('#mapLink').href = `https://www.google.com/maps?q=${latitude},${longitude}`;
+        document.querySelector('#locationResult').classList.add('visible');
+        setStatus(viewerStatus, '已收到位置。', 'success');
+      } catch {
+        setStatus(viewerStatus, '暫時無法連線，稍後重試中…', 'error');
+      }
+    }
+
+    if (mode === 'recipient') {
+      ownerView.hidden = true;
+      recipientView.hidden = false;
+      title.textContent = '分享你目前的位置';
+      locateButton.addEventListener('click', locateAndSend);
+    } else if (mode === 'viewer' && token) {
+      ownerView.hidden = true;
+      viewerView.hidden = false;
+      title.textContent = '查看回傳的位置';
+      pollLocation();
+      window.setInterval(pollLocation, 5000);
+    } else {
+      createButton.addEventListener('click', createRequest);
+      document.querySelector('#copyButton').addEventListener('click', copyRequestUrl);
+    }
+  </script>
+</body>
+</html>
