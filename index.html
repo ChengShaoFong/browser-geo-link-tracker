@@ -218,8 +218,11 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
-      }).then((response) => {
-        if (!response.ok) throw new Error(`後台回應 ${response.status}`);
+      }).then(async (response) => {
+        if (!response.ok) {
+          const details = await response.json().catch(() => ({}));
+          throw new Error(details.detail || `後台回應 ${response.status}`);
+        }
         setStatus(recipientStatus, '位置已傳送完成，您可以關閉此頁面。', 'success');
       }).catch((error) => {
         setStatus(recipientStatus, `位置已取得，但傳送失敗（${error.message}）。請確認這是 Netlify HTTPS 網址。`, 'error');
@@ -257,7 +260,10 @@
     async function pollLocation() {
       try {
         const response = await fetch(`/api/location?token=${encodeURIComponent(token)}`);
-        if (!response.ok) throw new Error('讀取失敗');
+        if (!response.ok) {
+          const details = await response.json().catch(() => ({}));
+          throw new Error(details.detail || `後台回應 ${response.status}`);
+        }
         const location = await response.json();
         if (!location) return;
         const { latitude, longitude, accuracy, receivedAt } = location;
@@ -266,8 +272,8 @@
         document.querySelector('#mapLink').href = `https://www.google.com/maps?q=${latitude},${longitude}`;
         document.querySelector('#locationResult').classList.add('visible');
         setStatus(viewerStatus, '已收到位置。', 'success');
-      } catch {
-        setStatus(viewerStatus, '暫時無法連線，稍後重試中…', 'error');
+      } catch (error) {
+        setStatus(viewerStatus, `後台讀取失敗：${error.message}`, 'error');
       }
     }
 

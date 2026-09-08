@@ -20,7 +20,7 @@ export async function handler(event) {
     store = getStore('locations');
   } catch (error) {
     console.error('Netlify Blobs initialization failed:', error);
-    return response(500, { error: 'storage_unavailable' });
+    return response(500, { error: 'storage_unavailable', detail: error.message });
   }
 
   try {
@@ -65,6 +65,6 @@ export async function handler(event) {
     return response(405, { error: 'method_not_allowed' });
   } catch (error) {
     console.error('Location function failed:', error);
-    return response(500, { error: 'storage_request_failed' });
+    return response(500, { error: 'storage_request_failed', detail: error.message });
   }
 }
