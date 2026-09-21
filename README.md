@@ -1,4 +1,4 @@
-# LocateSMS
+# browser-geo-link-tracker
 
 這是一個「靜態網頁 + 私人後台 API」的手機定位分享頁面。前端使用瀏覽器原生 `navigator.geolocation`，在 Chrome/Android 顯示定位權限詢問；現代格式的 Netlify Function 會使用 Netlify Blobs 暫存最新位置 24 小時。
 
