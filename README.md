@@ -6,6 +6,10 @@
 
 https://chengshaofong.github.io/browser-geo-link-tracker/
 
+## 自行部署
+
+部屬至其他網站 (ex: Netlify ) 修改網址
+
 ## 限制與隱私
 
 - 無法在收件人不知情或未授權時取得定位。
